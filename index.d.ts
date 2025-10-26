@@ -231,6 +231,16 @@ declare module "@uidotdev/usehooks" {
     }
   ): "unknown" | "loading" | "ready" | "error";
 
+  export function useKeyPress(
+    key: string,
+    cb: (e: KeyboardEvent) => void,
+    options?: {
+      event?: string;
+      target?: EventTarget | Window | { current: EventTarget | null } | null;
+      eventOptions?: AddEventListenerOptions;
+    }
+  ): void;
+
   export function useSessionStorage<T>(
     key: string,
     initialValue: T

@@ -1365,3 +1365,46 @@ export function useWindowSize() {
 
   return size;
 }
+
+export function useKeyPress(key, cb, options = {}) {
+  const { event = "keydown", target = typeof window !== "undefined" ? window : null, eventOptions } = options;
+
+  const cbRef = React.useRef(cb);
+
+  React.useLayoutEffect(() => {
+    cbRef.current = cb;
+  }, [cb]);
+
+  React.useEffect(() => {
+    if (!target) return;
+
+    const getTarget = () => {
+      // support passing a DOM node, window, or a ref-like object
+      if (typeof target === "object" && "current" in target) {
+        return target.current;
+      }
+
+      return target;
+    };
+
+    const t = getTarget();
+    if (!t || !t.addEventListener) return;
+
+    const handler = (e) => {
+      // KeyboardEvent key match
+      try {
+        if (e.key === key) {
+          cbRef.current && cbRef.current(e);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    t.addEventListener(event, handler, eventOptions);
+
+    return () => {
+      t.removeEventListener(event, handler, eventOptions);
+    };
+  }, [key, event, target, eventOptions]);
+}
