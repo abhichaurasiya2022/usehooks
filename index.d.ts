@@ -85,6 +85,14 @@ export type CustomQueue<T> = {
   queue: T[];
 };
 
+export type CookieOptions = {
+  /** Number of days from now or a Date object */
+  expires?: number | Date;
+  path?: string;
+  sameSite?: "Lax" | "Strict" | "None";
+  secure?: boolean;
+};
+
 export type RenderInfo = {
   name: string;
   renders: number;
@@ -179,6 +187,12 @@ declare module "@uidotdev/usehooks" {
   export function useLocalStorage<T>(
     key: string,
     initialValue?: T
+  ): [T, React.Dispatch<React.SetStateAction<T>>];
+
+  export function useCookieStorage<T>(
+    key: string,
+    initialValue?: T,
+    options?: CookieOptions
   ): [T, React.Dispatch<React.SetStateAction<T>>];
 
   export function useLockBodyScroll(): void;

@@ -1212,6 +1212,111 @@ export function useSessionStorage(key, initialValue) {
   return [store ? JSON.parse(store) : initialValue, setState];
 }
 
+const setCookieItem = (key, value, options = {}) => {
+  const { expires = 365, path = '/', sameSite = 'Lax', secure = false } = options;
+
+  const stringifiedValue = JSON.stringify(value);
+  const expiresDate =
+    expires instanceof Date
+      ? expires
+      : (() => {
+          const d = new Date();
+          d.setDate(d.getDate() + expires);
+          return d;
+        })();
+
+  const cookieParts = [
+    `${key}=${encodeURIComponent(stringifiedValue)}`,
+    `path=${path}`,
+    `expires=${expiresDate.toUTCString()}`,
+    `SameSite=${sameSite}`,
+  ];
+
+  if (secure) cookieParts.push('secure');
+
+  document.cookie = cookieParts.join('; ');
+  dispatchStorageEvent(key, stringifiedValue);
+};
+
+const removeCookieItem = (key, options = {}) => {
+  const { path = '/', sameSite = 'Lax', secure = false } = options;
+  const cookieParts = [
+    `${key}=`,
+    `path=${path}`,
+    'expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    `SameSite=${sameSite}`,
+  ];
+
+  if (secure) cookieParts.push('secure');
+
+  document.cookie = cookieParts.join('; ');
+  dispatchStorageEvent(key, null);
+};
+
+const getCookieItem = (key) => {
+  const cookies = document.cookie ? document.cookie.split('; ') : [];
+
+  for (let i = 0; i < cookies.length; i++) {
+    const [k, ...v] = cookies[i].split('=');
+    if (k === key) {
+      try {
+        return decodeURIComponent(v.join('='));
+      } catch (e) {
+        return v.join('=');
+      }
+    }
+  }
+
+  return null;
+};
+
+const useCookieStorageSubscribe = (callback) => {
+  // cookies do not emit a native event when changed, but we'll listen to
+  // storage so cross-tab updates triggered by our helpers (which dispatch a
+  // StorageEvent) will be picked up.
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
+
+const getCookieServerSnapshot = () => {
+  throw Error("useCookieStorage is a client-only hook");
+};
+
+export function useCookieStorage(key, initialValue, options = {}) {
+  const getSnapshot = () => getCookieItem(key);
+
+  const store = React.useSyncExternalStore(
+    useCookieStorageSubscribe,
+    getSnapshot,
+    getCookieServerSnapshot
+  );
+
+  const setState = React.useCallback(
+    (v) => {
+      try {
+        const nextState = typeof v === "function" ? v(JSON.parse(store)) : v;
+
+        if (nextState === undefined || nextState === null) {
+          removeCookieItem(key, options);
+        } else {
+          setCookieItem(key, nextState, options);
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    },
+    [key, store, options]
+  );
+
+  React.useEffect(() => {
+    if (getCookieItem(key) === null && typeof initialValue !== "undefined") {
+      setCookieItem(key, initialValue, options);
+    }
+  }, [key, initialValue, options]);
+
+  return [store ? JSON.parse(store) : initialValue, setState];
+}
+
 export function useSet(values) {
   const setRef = React.useRef(new Set(values));
   const [, reRender] = React.useReducer((x) => x + 1, 0);
