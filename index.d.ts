@@ -116,6 +116,12 @@ export type SpeechState = {
   volume: number;
 };
 
+export type ClipboardFormats = {
+  plain?: string;
+  html?: string;
+  markdown?: string;
+};
+
 declare module "@uidotdev/usehooks" {
   export function useBattery(): BatteryManager;
 
@@ -125,7 +131,7 @@ declare module "@uidotdev/usehooks" {
 
   export function useCopyToClipboard(): [
     string | null,
-    (value: string) => Promise<void>
+    (value: string | ClipboardFormats) => Promise<void>
   ];
 
   export function useCounter(

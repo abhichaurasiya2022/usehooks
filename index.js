@@ -145,18 +145,32 @@ export function useCopyToClipboard() {
   const copyToClipboard = React.useCallback((value) => {
     const handleCopy = async () => {
       try {
-        if (navigator?.clipboard?.writeText) {
+        // ClipboardItem API for multiple formats
+        if (typeof value === 'object' && value !== null && window.ClipboardItem) {
+          const items = {};
+          if (value.plain) {
+            items["text/plain"] = new Blob([value.plain], { type: "text/plain" });
+          }
+          if (value.html) {
+            items["text/html"] = new Blob([value.html], { type: "text/html" });
+          }
+          if (value.markdown) {
+            items["text/markdown"] = new Blob([value.markdown], { type: "text/markdown" });
+          }
+          const clipboardItem = new ClipboardItem(items);
+          await navigator.clipboard.write([clipboardItem]);
+          setState(value.plain || value.html || value.markdown);
+        } else if (navigator?.clipboard?.writeText) {
           await navigator.clipboard.writeText(value);
           setState(value);
         } else {
           throw new Error("writeText not supported");
         }
       } catch (e) {
-        oldSchoolCopy(value);
-        setState(value);
+        oldSchoolCopy(typeof value === 'object' ? value.plain : value);
+        setState(typeof value === 'object' ? value.plain : value);
       }
     };
-
     handleCopy();
   }, []);
 
